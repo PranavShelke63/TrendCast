@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const Event = require('../models/Event');
 
 const User = require('../models/User');
-// duplicate import removed
+const Vote = require('../models/Vote');
 
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -52,7 +52,58 @@ const closeEvent = async (req, res) => {
   }
 };
 
-// @desc    Generate prediction market events using Groq AI
+// Admin CRUD for Events
+
+// @desc    Get all events (admin)
+// @route   GET /api/admin/events
+// @access  Private/Admin
+const adminGetAllEvents = async (req, res) => {
+  try {
+    const events = await Event.find();
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get event by ID (admin)
+// @route   GET /api/admin/events/:id
+// @access  Private/Admin
+const adminGetEventById = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update event (admin)
+// @route   PUT /api/admin/events/:id
+// @access  Private/Admin
+const adminUpdateEvent = async (req, res) => {
+  try {
+    const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete event (admin)
+// @route   DELETE /api/admin/events/:id
+// @access  Private/Admin
+const adminDeleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findByIdAndDelete(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    res.json({ message: 'Event deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // @route   POST /api/admin/sync-polymarket
 // @access  Private/Admin
 const syncPolymarketData = async (req, res) => {
@@ -217,7 +268,84 @@ let skippedCount = 0;
   }
 };
 
-// @desc    Seed mock activity (votes) to make the platform look alive
+// Admin CRUD for Votes
+
+// @desc    Get all votes (admin)
+// @route   GET /api/admin/votes
+// @access  Private/Admin
+const adminGetAllVotes = async (req, res) => {
+  try {
+    const votes = await Vote.find();
+    res.json(votes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete vote (admin)
+// @route   DELETE /api/admin/votes/:id
+// @access  Private/Admin
+const adminDeleteVote = async (req, res) => {
+  try {
+    const vote = await Vote.findByIdAndDelete(req.params.id);
+    if (!vote) return res.status(404).json({ message: 'Vote not found' });
+    res.json({ message: 'Vote deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Admin CRUD for Users
+// @desc    Get all users (admin)
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const adminGetAllUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get user by ID (admin)
+// @route   GET /api/admin/users/:id
+// @access  Private/Admin
+const adminGetUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user (admin)
+// @route   PUT /api/admin/users/:id
+// @access  Private/Admin
+const adminUpdateUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete user (admin)
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+const adminDeleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // @route   POST /api/admin/seed-activity
 // @access  Private/Admin
 const seedMockActivity = async (req, res) => {
@@ -280,5 +408,15 @@ module.exports = {
   createEvent,
   closeEvent,
   syncPolymarketData,
-  seedMockActivity
+  seedMockActivity,
+  adminGetAllEvents,
+  adminGetEventById,
+  adminUpdateEvent,
+  adminDeleteEvent,
+  adminGetAllVotes,
+  adminDeleteVote,
+  adminGetAllUsers,
+  adminGetUserById,
+  adminUpdateUser,
+  adminDeleteUser
 };
