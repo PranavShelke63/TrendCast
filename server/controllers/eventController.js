@@ -7,7 +7,40 @@ const mongoose = require('mongoose');
 // @access  Public
 const getEvents = async (req, res) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 });
+    const events = await Event.aggregate([
+      {
+        $lookup: {
+          from: 'votes',
+          let: { eventId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$event', '$$eventId'] } } },
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userInfo' } },
+            { $match: { 'userInfo.username': { $not: /^bot_/ } } },
+            { $project: { _id: 0 } }
+          ],
+          as: 'filteredVotes'
+        }
+      },
+      {
+        $addFields: {
+          totalVotes: { $size: '$filteredVotes' }
+        }
+      },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          options: 1,
+          isActive: 1,
+          createdBy: 1,
+          outcome: 1,
+          closedAt: 1,
+          createdAt: 1,
+          totalVotes: 1
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
     res.json(events);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -22,17 +55,30 @@ const getEventById = async (req, res) => {
     const event = await Event.findById(req.params.id);
 
     if (event) {
-      // Get vote counts
-      const votes = await Vote.aggregate([
-        { $match: { event: new mongoose.Types.ObjectId(req.params.id) } },
-        { $group: { _id: '$optionId', count: { $sum: 1 } } }
-      ]);
-      
-      const totalVotes = await Vote.countDocuments({ event: req.params.id });
+      // Get vote counts excluding bots
+    const votes = await Vote.aggregate([
+      { $match: { event: new mongoose.Types.ObjectId(req.params.id) } },
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userInfo' } },
+      { $match: { 'userInfo.username': { $not: /^bot_/ } } },
+      { $group: { _id: '$optionId', count: { $sum: 1 } } }
+    ]);
 
-      res.json({ event, votes, totalVotes });
+    const totalVotes = await Vote.aggregate([
+      { $match: { event: new mongoose.Types.ObjectId(req.params.id) } },
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userInfo' } },
+      { $match: { 'userInfo.username': { $not: /^bot_/ } } },
+      { $count: 'count' }
+    ]);
+    const totalVotesCount = totalVotes.length ? totalVotes[0].count : 0;
+
+    res.json({ event, votes, totalVotes: totalVotesCount });
     } else {
-      res.status(404).json({ message: 'Event not found' });
+      res.status(201).json({
+        message: 'Polymarket data synced successfully',
+        syncedCount,
+        skippedDuplicates: skippedCount,
+        totalGenerated: generatedEvents.length
+      });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

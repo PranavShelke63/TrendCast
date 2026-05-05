@@ -17,9 +17,11 @@ const eventSchema = new mongoose.Schema({
     required: [true, 'Please provide a title'],
     trim: true
   },
-  description: {
+  category: {
     type: String,
-    required: [true, 'Please provide a description']
+    enum: ['politics', 'crypto', 'tech', 'sports', 'entertainment'],
+    required: false,
+    default: 'entertainment'
   },
   options: {
     type: [optionSchema],

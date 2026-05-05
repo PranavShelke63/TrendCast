@@ -3,7 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Markets from './pages/Markets';
+import Categories from './pages/Categories';
 import Leaderboard from './pages/Leaderboard';
+import HowItWorks from './pages/HowItWorks';
+import Portfolio from './pages/Portfolio';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -21,7 +24,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/markets" element={<Markets />} />
+            <Route path="/categories" element={<Categories />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/events/:id" element={<EventDetail />} />

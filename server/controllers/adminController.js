@@ -1,4 +1,9 @@
+const Groq = require('groq-sdk');
 const Event = require('../models/Event');
+const User = require('../models/User');
+const Vote = require('../models/Vote');
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // @desc    Create an event
 // @route   POST /api/admin/events
@@ -45,46 +50,196 @@ const closeEvent = async (req, res) => {
   }
 };
 
-// @desc    Fetch Polymarket style data to populate markets
-// @route   POST /api/admin/fetch-live-data
+// @desc    Generate prediction market events using Groq AI
+// @route   POST /api/admin/sync-polymarket
 // @access  Private/Admin
-const fetchLiveData = async (req, res) => {
+const syncPolymarketData = async (req, res) => {
   try {
-    const newEvents = [
-      {
-        title: "Will the Federal Reserve cut interest rates in June 2026?",
-        description: "This market resolves to Yes if the US Federal Reserve announces a cut to the federal funds target rate during their June 2026 FOMC meeting.",
-        options: [{ id: 'yes', text: 'Yes' }, { id: 'no', text: 'No' }],
-        createdBy: req.user._id
-      },
-      {
-        title: "Who will win the 2026 FIFA World Cup?",
-        description: "Predict the winner of the 2026 FIFA World Cup hosted by USA, Canada, and Mexico.",
-        options: [{ id: 'bra', text: 'Brazil' }, { id: 'fra', text: 'France' }, { id: 'arg', text: 'Argentina' }, { id: 'eng', text: 'England' }],
-        createdBy: req.user._id
-      },
-      {
-        title: "Will Bitcoin reach $150,000 by end of 2026?",
-        description: "This market resolves to Yes if the price of Bitcoin (BTC) hits $150,000 USD on Binance at any point before Dec 31, 2026.",
-        options: [{ id: 'yes', text: 'Yes' }, { id: 'no', text: 'No' }],
-        createdBy: req.user._id
-      },
-      {
-        title: "Will OpenAI release GPT-5 before July 2026?",
-        description: "This market resolves to Yes if OpenAI officially releases a model named 'GPT-5' to the public before July 1, 2026.",
-        options: [{ id: 'yes', text: 'Yes' }, { id: 'no', text: 'No' }],
-        createdBy: req.user._id
-      },
-      {
-        title: "Will humans land on Mars by 2030?",
-        description: "This market resolves to Yes if any human crew lands on the surface of Mars before January 1, 2030.",
-        options: [{ id: 'yes', text: 'Yes' }, { id: 'no', text: 'No' }],
-        createdBy: req.user._id
-      }
-    ];
+    // Fetch existing titles to prevent duplicates
+    const existingEvents = await Event.find({}, { title: 1 });
+    const existingTitles = existingEvents.map(e => e.title.toLowerCase().trim());
 
-    const createdEvents = await Event.insertMany(newEvents);
-    res.status(201).json({ message: 'Polymarket data synced successfully', count: createdEvents.length });
+    const prompt = `You are a prediction market data generator for a platform similar to Polymarket, but for Indian and global audiences.
+
+Generate exactly 12 unique prediction market events that are TRENDING RIGHT NOW in May 2026.
+
+Categories to cover (2-3 events per category):
+- Politics (Indian elections, US politics, geopolitics)
+- Crypto & Finance (Bitcoin, Ethereum, stock markets, RBI, inflation)
+- Technology (AI releases, tech company launches, space missions)
+- Sports (Cricket IPL, FIFA, Olympics, tennis)
+- Entertainment (Bollywood, Hollywood, music, awards)
+
+Rules:
+1. Each event must be a clear Yes/No question or have 2-4 specific outcome options
+2. Events must be realistic and plausible for May 2026
+3. Descriptions should be 1-2 sentences explaining resolution criteria
+4. Make them feel like real Polymarket-style prediction markets
+5. Include a mix of Indian-focused and global events
+6. Do NOT generate any of these existing events: ${existingTitles.slice(0, 20).join(' | ')}
+
+Respond ONLY with a valid JSON array. No markdown, no code blocks, no explanation. Just the raw JSON array.
+
+Each object must have exactly these fields:
+{
+  "title": "The prediction question",
+  "description": "Clear resolution criteria in 1-2 sentences",
+  "category": "politics|crypto|tech|sports|entertainment",
+  "options": [{"id": "yes", "text": "Yes"}, {"id": "no", "text": "No"}]
+}
+
+For multi-outcome events, use options like:
+[{"id": "opt_0", "text": "Option A"}, {"id": "opt_1", "text": "Option B"}, {"id": "opt_2", "text": "Option C"}]`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.9,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' }
+    });
+
+    const responseText = chatCompletion.choices[0]?.message?.content;
+
+    if (!responseText) {
+      return res.status(500).json({ message: 'Groq returned an empty response' });
+    }
+
+    // Parse the response — handle both array and {events: [...]} formats
+    let parsedData;
+    try {
+      parsedData = JSON.parse(responseText);
+    } catch (parseErr) {
+      // Try to extract JSON array from response
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        parsedData = JSON.parse(jsonMatch[0]);
+      } else {
+        return res.status(500).json({ message: 'Failed to parse Groq response', raw: responseText.substring(0, 500) });
+      }
+    }
+
+    // Normalize: if it's {events: [...]} or {markets: [...]}, extract the array
+    let generatedEvents = Array.isArray(parsedData)
+      ? parsedData
+      : parsedData.events || parsedData.markets || parsedData.predictions || Object.values(parsedData)[0];
+
+    if (!Array.isArray(generatedEvents)) {
+      return res.status(500).json({ message: 'Groq response did not contain an array of events' });
+    }
+
+    let syncedCount = 0;
+    let skippedCount = 0;
+
+    for (const genEvent of generatedEvents) {
+      // Validate required fields
+      if (!genEvent.title || !genEvent.options || !Array.isArray(genEvent.options) || genEvent.options.length < 2) {
+        skippedCount++;
+        continue;
+      }
+
+      // Deduplication: check if a similar title already exists
+      const normalizedTitle = genEvent.title.toLowerCase().trim();
+      const isDuplicate = existingTitles.some(existing => {
+        // Exact match
+        if (existing === normalizedTitle) return true;
+        // Fuzzy match: check if 80%+ of words overlap
+        const existingWords = new Set(existing.split(/\s+/));
+        const newWords = normalizedTitle.split(/\s+/);
+        const overlapCount = newWords.filter(w => existingWords.has(w)).length;
+        return overlapCount / Math.max(newWords.length, 1) > 0.8;
+      });
+
+      if (isDuplicate) {
+        skippedCount++;
+        continue;
+      }
+
+      // Ensure options have proper id fields
+      const options = genEvent.options.map((opt, index) => ({
+        id: opt.id || (index === 0 ? 'yes' : index === 1 ? 'no' : `opt_${index}`),
+        text: opt.text || opt.name || `Option ${index + 1}`
+      }));
+
+      const newEvent = new Event({
+        title: genEvent.title,
+        description: genEvent.description || genEvent.title,
+        options,
+        createdBy: req.user._id,
+        isActive: true
+      });
+
+      await newEvent.save();
+      existingTitles.push(normalizedTitle); // Add to dedup list for this batch
+      syncedCount++;
+    }
+
+    res.status(201).json({
+      message: 'AI-generated markets synced successfully',
+      syncedCount,
+      skippedDuplicates: skippedCount,
+      totalGenerated: generatedEvents.length
+    });
+  } catch (error) {
+    console.error('Groq Sync Error:', error);
+    res.status(500).json({ message: 'Failed to generate events via Groq AI', error: error.message });
+  }
+};
+
+// @desc    Seed mock activity (votes) to make the platform look alive
+// @route   POST /api/admin/seed-activity
+// @access  Private/Admin
+const seedMockActivity = async (req, res) => {
+  try {
+    // 1. Ensure we have mock "Bot" users
+    const botCount = 15;
+    let bots = await User.find({ username: /^bot_/ });
+
+    if (bots.length < botCount) {
+      const newBots = [];
+      for (let i = bots.length; i < botCount; i++) {
+        newBots.push({
+          username: `bot_trader_${i + 1}`,
+          email: `bot${i + 1}@trendcast.io`,
+          password: 'password123',
+          role: 'user'
+        });
+      }
+      const createdBots = await User.insertMany(newBots);
+      bots = bots.concat(createdBots);
+    }
+
+    // 2. Get all active events
+    const activeEvents = await Event.find({ isActive: true });
+    let totalVotesSeeded = 0;
+
+    // 3. For each event, add random votes from bots
+    for (const event of activeEvents) {
+      const randomVoteCount = Math.floor(Math.random() * bots.length) + 3;
+      const shuffledBots = [...bots].sort(() => 0.5 - Math.random()).slice(0, randomVoteCount);
+
+      for (const bot of shuffledBots) {
+        // Check if bot already voted
+        const existingVote = await Vote.findOne({ user: bot._id, event: event._id });
+        if (existingVote) continue;
+
+        const randomOptionIndex = Math.floor(Math.random() * event.options.length);
+        const selectedOption = event.options[randomOptionIndex].id;
+
+        await Vote.create({
+          user: bot._id,
+          event: event._id,
+          optionId: selectedOption
+        });
+        totalVotesSeeded++;
+      }
+    }
+
+    res.status(201).json({
+      message: 'Mock activity seeded successfully',
+      totalVotesSeeded,
+      eventsAffected: activeEvents.length
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -93,5 +248,6 @@ const fetchLiveData = async (req, res) => {
 module.exports = {
   createEvent,
   closeEvent,
-  fetchLiveData
+  syncPolymarketData,
+  seedMockActivity
 };

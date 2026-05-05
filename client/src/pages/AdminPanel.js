@@ -26,11 +26,21 @@ const AdminPanel = () => {
     }
   };
 
-  const handleFetchLiveData = async () => {
+  const handleSyncPolymarket = async () => {
     try {
-      setMessage('Fetching live data...');
-      const res = await axios.post('/api/admin/fetch-live-data');
-      setMessage(res.data.message + ` (${res.data.count} events created)`);
+      setMessage('Syncing with Polymarket...');
+      const res = await axios.post('/api/admin/sync-polymarket');
+      setMessage(`${res.data.message} (${res.data.syncedCount} new events)`);
+    } catch (err) {
+      setMessage(err.response?.data?.message || err.message);
+    }
+  };
+
+  const handleSeedActivity = async () => {
+    try {
+      setMessage('Seeding mock activity...');
+      const res = await axios.post('/api/admin/seed-activity');
+      setMessage(`${res.data.message} (${res.data.totalVotesSeeded} votes added across ${res.data.eventsAffected} events)`);
     } catch (err) {
       setMessage(err.response?.data?.message || err.message);
     }
@@ -38,12 +48,20 @@ const AdminPanel = () => {
 
   return (
     <div>
-      <h1 className="mb-2">Admin Panel</h1>
+      <h1 className="mb-2">Admin Terminal</h1>
       
-      <div className="card" style={{ maxWidth: '600px', marginBottom: '2rem' }}>
-        <h2 className="mb-1 text-sm">Automated Market Creation</h2>
-        <p className="text-muted mb-2 text-sm">Fetch live Polymarket data to instantly populate new prediction markets.</p>
-        <button className="btn btn-secondary" onClick={handleFetchLiveData}>Sync Polymarket Data</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="card">
+          <h2 className="mb-1 text-sm">Polymarket Integration</h2>
+          <p className="text-muted mb-2 text-sm">Fetch active prediction markets directly from Polymarket Gamma API.</p>
+          <button className="btn btn-secondary w-full" onClick={handleSyncPolymarket}>Sync Markets</button>
+        </div>
+
+        <div className="card">
+          <h2 className="mb-1 text-sm">Activity Simulator</h2>
+          <p className="text-muted mb-2 text-sm">Populate the platform with simulated trades from AI bot accounts.</p>
+          <button className="btn btn-secondary w-full" onClick={handleSeedActivity}>Seed Activity</button>
+        </div>
       </div>
 
       <div className="card" style={{ maxWidth: '600px' }}>

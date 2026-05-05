@@ -58,25 +58,37 @@ const Markets = () => {
           {filteredEvents.map((event) => (
             <div key={event._id} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="flex justify-between items-start mb-1">
-                <span style={{ fontSize: '0.75rem', fontWeight: '700', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', color: 'var(--secondary-color)' }}>
-                  CRYPTO
-                </span>
-                <span className={`text-sm ${event.isActive ? 'text-success' : 'text-error'}`}>
-                  {event.isActive ? '● Active' : 'Resolved'}
+                <div className="flex gap-1">
+                  <span style={{ fontSize: '0.65rem', fontWeight: '800', backgroundColor: '#eff6ff', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary-color)', textTransform: 'uppercase' }}>
+                    Polymarket
+                  </span>
+                  {event.totalVotes > 5 && (
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', backgroundColor: '#fff7ed', padding: '2px 6px', borderRadius: '4px', color: '#c2410c', textTransform: 'uppercase' }}>
+                      🔥 Trending
+                    </span>
+                  )}
+                </div>
+                <span className={`text-xs font-bold ${event.isActive ? 'text-success' : 'text-error'}`}>
+                  {event.isActive ? '● ACTIVE' : 'RESOLVED'}
                 </span>
               </div>
               
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: '700', minHeight: '3.5rem' }}>
+              <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: '800', minHeight: '3rem', lineHeight: '1.3' }}>
                 {event.title}
               </h2>
               
-              <p className="text-muted text-sm mb-2" style={{ flex: 1 }}>
-                {event.description.substring(0, 140)}...
+              <p className="text-muted text-xs mb-2" style={{ flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                {event.description}
               </p>
               
-              <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <Link to={`/events/${event._id}`} className="btn" style={{ width: '100%', gap: '0.5rem' }}>
-                  View Market <ArrowRight size={16} />
+              <div className="mt-1 flex justify-between items-center text-xs font-bold mb-2">
+                <span className="text-muted uppercase tracking-wider">Volume</span>
+                <span className="text-primary">{event.totalVotes || 0} Predictions · ₹{((event.totalVotes || 0) * 142).toLocaleString('en-IN')}</span>
+              </div>
+
+              <div className="pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <Link to={`/events/${event._id}`} className="btn w-full" style={{ padding: '0.5rem', fontSize: '0.875rem' }}>
+                  Forecast Now <ArrowRight size={14} style={{ marginLeft: '4px' }} />
                 </Link>
               </div>
             </div>

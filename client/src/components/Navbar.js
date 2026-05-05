@@ -26,17 +26,29 @@ const Navbar = () => {
           <span style={{ letterSpacing: '-0.5px' }}>TrendCast</span>
         </Link>
         <div className="flex gap-1">
-          <Link 
-            to="/markets" 
+          <Link
+            to="/markets"
             className={`nav-link ${isActive('/markets') ? 'active' : ''}`}
           >
             Markets
           </Link>
-          <Link 
-            to="/leaderboard" 
+          <Link
+            to="/categories"
+            className={`nav-link ${isActive('/categories') ? 'active' : ''}`}
+          >
+            Explore
+          </Link>
+          <Link
+            to="/leaderboard"
             className={`nav-link ${isActive('/leaderboard') ? 'active' : ''}`}
           >
             Leaderboard
+          </Link>
+          <Link
+            to="/how-it-works"
+            className={`nav-link ${isActive('/how-it-works') ? 'active' : ''}`}
+          >
+            How It Works
           </Link>
         </div>
       </div>
@@ -44,15 +56,21 @@ const Navbar = () => {
       <div className="nav-links">
         {user ? (
           <div className="flex items-center gap-1">
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/portfolio"
+              className={`nav-link ${isActive('/portfolio') ? 'active' : ''}`}
+            >
+              Portfolio
+            </Link>
+            <Link
+              to="/dashboard"
               className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
             >
               Dashboard
             </Link>
             {user.role === 'admin' && (
-              <Link 
-                to="/admin" 
+              <Link
+                to="/admin"
                 className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
               >
                 Admin
