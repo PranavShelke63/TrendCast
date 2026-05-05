@@ -1,7 +1,9 @@
 const Groq = require('groq-sdk');
 const Event = require('../models/Event');
+
 const User = require('../models/User');
-const Vote = require('../models/Vote');
+// duplicate import removed
+
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -129,7 +131,26 @@ For multi-outcome events, use options like:
     }
 
     let syncedCount = 0;
-    let skippedCount = 0;
+
+// Ensure bot users exist for seeding votes
+const botCount = 15;
+let bots = await User.find({ username: /^bot_/ });
+if (bots.length < botCount) {
+  const newBots = [];
+  for (let i = bots.length; i < botCount; i++) {
+    newBots.push({
+      username: `bot_trader_${i + 1}`,
+      email: `bot${i + 1}@trendcast.io`,
+      password: 'password123',
+      role: 'user'
+    });
+  }
+  const createdBots = await User.insertMany(newBots);
+  bots = bots.concat(createdBots);
+}
+
+let skippedCount = 0;
+    
 
     for (const genEvent of generatedEvents) {
       // Validate required fields
@@ -170,16 +191,26 @@ For multi-outcome events, use options like:
       });
 
       await newEvent.save();
-      existingTitles.push(normalizedTitle); // Add to dedup list for this batch
+       // Seed random votes for the newly created event to simulate live activity
+ const voteCount = Math.floor(Math.random() * 8) + 3; // 3-10 votes
+ const shuffledBots = [...bots].sort(() => 0.5 - Math.random()).slice(0, voteCount);
+ for (const bot of shuffledBots) {
+   const existingVote = await Vote.findOne({ user: bot._id, event: newEvent._id });
+   if (existingVote) continue;
+   const randomOptionIdx = Math.floor(Math.random() * newEvent.options.length);
+   const optionId = newEvent.options[randomOptionIdx].id;
+   await Vote.create({ user: bot._id, event: newEvent._id, optionId });
+ }
+ existingTitles.push(normalizedTitle); // Add to dedup list for this batch
       syncedCount++;
     }
 
-    res.status(201).json({
-      message: 'AI-generated markets synced successfully',
-      syncedCount,
-      skippedDuplicates: skippedCount,
-      totalGenerated: generatedEvents.length
-    });
+      res.status(201).json({
+        message: 'Polymarket data synced successfully',
+        syncedCount,
+        skippedDuplicates: skippedCount,
+        totalGenerated: generatedEvents.length
+      });
   } catch (error) {
     console.error('Groq Sync Error:', error);
     res.status(500).json({ message: 'Failed to generate events via Groq AI', error: error.message });

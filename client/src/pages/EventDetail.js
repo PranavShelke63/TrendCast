@@ -52,7 +52,7 @@ const EventDetail = () => {
   // Stable mock activity (seeded from event id to avoid rerenders)
   const mockActivity = event.options.length > 0
     ? [1, 2, 3, 4, 5].map(i => ({
-        trader: `Bot_Trader_${(parseInt(id.slice(-3), 16) + i * 17) % 100}`,
+        trader: `Trader_${(parseInt(id.slice(-3), 16) + i * 17) % 100}`,
         option: event.options[(parseInt(id.slice(-2), 16) + i) % event.options.length].text,
         minsAgo: i
       }))

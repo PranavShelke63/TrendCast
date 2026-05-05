@@ -72,14 +72,9 @@ const getEventById = async (req, res) => {
     const totalVotesCount = totalVotes.length ? totalVotes[0].count : 0;
 
     res.json({ event, votes, totalVotes: totalVotesCount });
-    } else {
-      res.status(201).json({
-        message: 'Polymarket data synced successfully',
-        syncedCount,
-        skippedDuplicates: skippedCount,
-        totalGenerated: generatedEvents.length
-      });
-    }
+      } else {
+        res.status(404).json({ message: 'Event not found' });
+      }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
