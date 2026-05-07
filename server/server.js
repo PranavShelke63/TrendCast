@@ -12,8 +12,14 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true
 }));
 
