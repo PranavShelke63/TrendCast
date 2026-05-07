@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { getEvents } from '../features/eventSlice';
 import { Link } from 'react-router-dom';
-import { Search, Filter, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight } from 'lucide-react';
 
 const Markets = () => {
   const dispatch = useDispatch();

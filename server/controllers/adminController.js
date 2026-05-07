@@ -404,11 +404,50 @@ const seedMockActivity = async (req, res) => {
   }
 };
 
+// @desc    Remove events with 0 predictions
+// @route   DELETE /api/admin/cleanup-events
+// @access  Private/Admin
+const cleanupZeroPredictionEvents = async (req, res) => {
+  try {
+    const events = await Event.aggregate([
+      {
+        $lookup: {
+          from: 'votes',
+          localField: '_id',
+          foreignField: 'event',
+          as: 'votes'
+        }
+      },
+      {
+        $addFields: {
+          voteCount: { $size: '$votes' }
+        }
+      },
+      {
+        $match: {
+          voteCount: 0
+        }
+      }
+    ]);
+
+    const eventIds = events.map(e => e._id);
+    const result = await Event.deleteMany({ _id: { $in: eventIds } });
+
+    res.json({
+      message: 'Cleanup successful',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createEvent,
   closeEvent,
   syncPolymarketData,
   seedMockActivity,
+  cleanupZeroPredictionEvents,
   adminGetAllEvents,
   adminGetEventById,
   adminUpdateEvent,

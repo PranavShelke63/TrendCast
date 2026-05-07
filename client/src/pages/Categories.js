@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getEvents } from '../features/eventSlice';
-import { BarChart3, Globe, Cpu, Trophy as TrophyIcon, Film, Landmark, Flame, ArrowRight } from 'lucide-react';
+import { BarChart3, Globe, Cpu, Trophy as TrophyIcon, Film, Landmark, Flame } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Markets', icon: <Globe size={18} />, color: '#2563eb' },

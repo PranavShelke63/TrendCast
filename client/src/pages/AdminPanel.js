@@ -50,6 +50,17 @@ const AdminPanel = () => {
     }
   };
 
+  const handleCleanupEvents = async () => {
+    if (!window.confirm('Are you sure you want to remove all events with 0 predictions? This action cannot be undone.')) return;
+    try {
+      setMessage('Cleaning up events...');
+      const res = await axios.delete('/api/admin/cleanup-events');
+      setMessage(`${res.data.message}: Deleted ${res.data.deletedCount} events.`);
+    } catch (err) {
+      setMessage(err.response?.data?.message || err.message);
+    }
+  };
+
   return (
     <div>
       <h1 className="mb-2">Admin Terminal</h1>
@@ -63,7 +74,7 @@ const AdminPanel = () => {
       
       {activeTab === 'overview' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
             <div className="card">
               <h2 className="mb-1 text-sm">Polymarket Integration</h2>
               <p className="text-muted mb-2 text-sm">Fetch active prediction markets directly from Polymarket Gamma API.</p>
@@ -74,6 +85,12 @@ const AdminPanel = () => {
               <h2 className="mb-1 text-sm">Activity Simulator</h2>
               <p className="text-muted mb-2 text-sm">Populate the platform with simulated trades from AI bot accounts.</p>
               <button className="btn btn-secondary w-full" onClick={handleSeedActivity}>Seed Activity</button>
+            </div>
+
+            <div className="card">
+              <h2 className="mb-1 text-sm">Platform Cleanup</h2>
+              <p className="text-muted mb-2 text-sm">Remove all events that have zero predictions to keep the feed clean.</p>
+              <button className="btn btn-secondary w-full" style={{ color: 'var(--error-color)', borderColor: 'var(--error-color)' }} onClick={handleCleanupEvents}>Cleanup Events</button>
             </div>
           </div>
 

@@ -5,6 +5,7 @@ const {
   closeEvent, 
   syncPolymarketData, 
   seedMockActivity,
+  cleanupZeroPredictionEvents,
   adminGetAllEvents,
   adminGetEventById,
   adminUpdateEvent,
@@ -29,6 +30,7 @@ router.delete('/events/:id', protect, admin, adminDeleteEvent);
 // Sync and seed routes
 router.post('/sync-polymarket', protect, admin, syncPolymarketData);
 router.post('/seed-activity', protect, admin, seedMockActivity);
+router.delete('/cleanup-events', protect, admin, cleanupZeroPredictionEvents);
 
 // Vote routes
 router.get('/votes', protect, admin, adminGetAllVotes);

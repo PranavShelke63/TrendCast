@@ -128,7 +128,6 @@ const Portfolio = () => {
                 {activity.map((item) => {
                   const isOpen = item.event?.isActive;
                   const isCorrect = !isOpen && item.event?.outcome === item.optionId;
-                  const isWrong = !isOpen && item.event?.outcome !== item.optionId;
                   return (
                     <tr key={item._id}>
                       <td>
